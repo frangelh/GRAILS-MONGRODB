@@ -2,11 +2,10 @@ package grails.mongodb
 
 class MovimientoInventario {
     long codigoMovimiento
-    long codigoAlmacen
-    TipoMovimiento tipoMovimiento
+    String tipoMovimiento
     long codigoArticulo
     long cantidad
-    String unidad
+
 
 
     static mapWith = "mongo"

@@ -9,7 +9,7 @@ grails:
     gorm:
         # Whether to autowire entities. 
         # Disabled by default for performance reasons.
-        autowire: false         
+        autowire: true
         reactor:
             # Whether to translate GORM events into Reactor events
             # Disabled by default for performance reasons
@@ -136,9 +136,11 @@ environments:
                 defaultTransactionIsolation: 2 # TRANSACTION_READ_COMMITTED
 
 
-    mongodb:
-        host: "localhost"
-        port: 27017
-        username: ""
-        password: ""
-        databaseName: "final"
+grails:
+   mongodb:
+            engine: mapping
+            host: "127.0.0.1"
+            port: 27017
+            username: ""
+            password: ""
+            databaseName: "final"
