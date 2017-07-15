@@ -64,11 +64,10 @@ class VistaPrincipal extends VerticalLayout {
         layout.addComponent(tfCantidad)
 
         Button btnAceptar = new Button("Procesar Movmiento")
-        btnAceptar.addStyleName(ValoTheme.BUTTON_FRIENDLY)
         btnAceptar.addClickListener(new Button.ClickListener() {
             @Override
             void buttonClick(Button.ClickEvent clickEvent) {
-
+                println "CLICK..."
 
                 try {
                     def oc = Grails.get(OrdenCompraService)
@@ -76,11 +75,11 @@ class VistaPrincipal extends VerticalLayout {
                             cbTipoMovimiento.selectedItem.toString(),
                             tfArticulo.getValue().toString().toLong(),
                             tfCantidad.getValue().toString().toLong()
-
                     )
                 } catch (Exception e) {
                     e.printStackTrace()
                 }
+
                 /* try {
                      //TODO: revisar existencia y modificar tabla de Articulo
 

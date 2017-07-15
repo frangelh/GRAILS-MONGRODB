@@ -58,7 +58,7 @@ dependencies {
     testRuntime "net.sourceforge.htmlunit:htmlunit:2.18"
 
     compile "org.mongodb:mongodb-driver:3.4.2"
-    compile 'org.grails.plugins:mongodb:6.1.2'
+    compile 'org.grails.plugins:mongodb:6.1.3'
 }
 
 bootRun {
