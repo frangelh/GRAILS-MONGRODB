@@ -228,13 +228,14 @@ class VistaPrincipal extends VerticalLayout {
         grid.removeColumn("articulo")
         grid.removeColumn("boton")
 
-        articulos.addAll(Grails.get(ArticuloService).buscarTodo())
+        articulos = Grails.get(ArticuloService).buscarTodo()
         grid.setItems(articulos)
 
         btnRefresh.addClickListener(new Button.ClickListener() {
             @Override
             void buttonClick(Button.ClickEvent clickEvent) {
-                articulos.addAll(Grails.get(ArticuloService).buscarTodo())
+                articulos.removeAll()
+                articulos = Grails.get(ArticuloService).buscarTodo()
                 grid.setItems(articulos)
             }
         })
