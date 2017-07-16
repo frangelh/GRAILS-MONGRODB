@@ -1,9 +1,14 @@
 package com.app.vistas
 
+import com.app.encapsulados.ArticuloTabla
 import com.vaadin.grails.Grails
 import com.vaadin.ui.*
+import com.vaadin.ui.renderers.ButtonRenderer
+import com.vaadin.ui.renderers.ClickableRenderer
 import com.vaadin.ui.themes.ValoTheme
+import grails.mongodb.ArticuloService
 import grails.mongodb.OrdenCompraService
+import grails.mongodb.Suplidor
 
 class VistaPrincipal extends VerticalLayout {
 
@@ -31,7 +36,7 @@ class VistaPrincipal extends VerticalLayout {
         VerticalLayout body = new VerticalLayout()
         body.setSizeFull()
         TabSheet tabSheet = new TabSheet()
-        tabSheet.setSizeUndefined()
+        tabSheet.setSizeFull()
         tabSheet.addTab(construirMovimientos(), "Movimientos de inventario")
         tabSheet.addTab(construirPedidos(), "Pedidos Automaticos")
         body.addComponent(tabSheet)
@@ -40,12 +45,12 @@ class VistaPrincipal extends VerticalLayout {
 
     private Component construirMovimientos() {
         VerticalLayout layout = new VerticalLayout()
-        layout.setSizeFull()
+        layout.setSizeUndefined()
 
-        TextField tfCodigoMovimiento = new TextField("No.MovimientoRest:")
+        TextField tfCodigoMovimiento = new TextField("No.Movimiento:")
         tfCodigoMovimiento.requiredIndicatorVisible = true
 
-        ComboBox cbTipoMovimiento = new ComboBox("Tipo de MovimientoRest:")
+        ComboBox cbTipoMovimiento = new ComboBox("Tipo de Movimiento:")
         cbTipoMovimiento.requiredIndicatorVisible = true
         cbTipoMovimiento.items = [ENTRADA, SALIDA]
         cbTipoMovimiento.selectedItem = ENTRADA
@@ -67,37 +72,18 @@ class VistaPrincipal extends VerticalLayout {
         btnAceptar.addClickListener(new Button.ClickListener() {
             @Override
             void buttonClick(Button.ClickEvent clickEvent) {
-                println "CLICK..."
 
                 try {
+
+                    long codigo = tfCodigoMovimiento.getValue().toString().toLong()
+                    String tipo = cbTipoMovimiento.value.toString()
+                    long articulo = tfArticulo.getValue().toString().toLong()
+                    long cantidad = tfCantidad.getValue().toString().toLong()
                     def oc = Grails.get(OrdenCompraService)
-                    oc.procesarMovimiento(tfCodigoMovimiento.getValue().toString().toLong(),
-                            cbTipoMovimiento.selectedItem.toString(),
-                            tfArticulo.getValue().toString().toLong(),
-                            tfCantidad.getValue().toString().toLong()
-                    )
+                    oc.procesarMovimiento(codigo, tipo, articulo, cantidad)
                 } catch (Exception e) {
                     e.printStackTrace()
                 }
-
-                /* try {
-                     //TODO: revisar existencia y modificar tabla de Articulo
-
-
-
-                      def movimiento = new MovimientoInventario(
-                              codigoMovimiento: tfCodigoMovimiento.getValue().toString().toLong(),
-                              tipoMovimiento: cbTipoMovimiento.selectedItem.toString(),
-                              codigoArticulo: tfArticulo.getValue().toString().toLong(),
-                              cantidad: tfCantidad.getValue().toString().toLong()
-                      )
-                     movimiento.insert()
-
-                 } catch (Exception e) {
-                     println("HUBO UN ERROR...")
-                     e.printStackTrace()
-                 }*/
-
             }
         })
 
@@ -124,8 +110,69 @@ class VistaPrincipal extends VerticalLayout {
     }
 
     private Component construirPedidos() {
-        VerticalLayout layout = new VerticalLayout()
 
+        List<ArticuloTabla> articulos = new ArrayList<>()
+        def suplidor // suplidor mas comun
+
+        VerticalLayout layout = new VerticalLayout()
+        TextField tfOrdenCompra = new TextField("No.Orden Compra:")
+        tfOrdenCompra.requiredIndicatorVisible = true
+
+        DateField pdfFechaInicio = new DateField("Fecha Inicio:")
+        pdfFechaInicio.setStyleName(ValoTheme.DATEFIELD_ALIGN_CENTER)
+        pdfFechaInicio.setWidth("150px")
+
+        //buscador
+        HorizontalLayout hl = new HorizontalLayout()
+        TextField tfBuscar = new TextField("Codigo Articulo:")
+        tfBuscar.setWidth("200px ")
+        tfBuscar.addStyleName(ValoTheme.TEXTFIELD_INLINE_ICON);
+        Button btnBuscar = new Button("Agregar")
+        btnBuscar.setStyleName(ValoTheme.BUTTON_PRIMARY)
+        btnBuscar.addStyleName(ValoTheme.BUTTON_SMALL)
+
+        hl.addComponents(tfBuscar, btnBuscar)
+        Grid<ArticuloTabla> grid = new Grid<>(ArticuloTabla.class)
+        grid.setSizeFull()
+        grid.removeColumn("metaClass")
+        grid.removeColumn("articulo")
+
+
+        TextField tfSuplidor = new TextField("Suplidor:")
+        tfSuplidor.readOnly = true
+
+        TextField tfMonto = new TextField("Monto Total:")
+        tfMonto.readOnly = true
+
+        //acciones de los componentes
+        //botones del grid
+        grid.getColumn("boton").setRenderer(new ButtonRenderer(new ClickableRenderer.RendererClickListener() {
+            @Override
+            void click(ClickableRenderer.RendererClickEvent e) {
+                ArticuloTabla at = (ArticuloTabla) e.item
+                articulos.remove(at)
+                grid.setItems(articulos)
+                BigDecimal monto = BigDecimal.ZERO
+                articulos.each {a-> monto = monto.add(a.precio)}
+                tfMonto.value = monto.toString()
+            }
+        }))
+        //boton de buscar
+        btnBuscar.addClickListener(new Button.ClickListener() {
+            @Override
+            void buttonClick(Button.ClickEvent clickEvent) {
+                articulos.addAll(Grails.get(ArticuloService).buscarArticulo(tfBuscar.value.toString().toLong()))
+                grid.setItems(articulos)
+                BigDecimal monto = BigDecimal.ZERO
+                articulos.each {a-> monto = monto.add(a.precio)}
+                tfMonto.value = monto.toString()
+
+            }
+        })
+
+
+
+        layout.addComponents(tfOrdenCompra, pdfFechaInicio, hl, grid, tfSuplidor, tfMonto)
         return layout
     }
 

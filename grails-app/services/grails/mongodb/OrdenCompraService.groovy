@@ -5,8 +5,16 @@ import grails.transaction.Transactional
 @Transactional
 class OrdenCompraService {
 
-    void procesarMovimiento( long codigoMovimiento,String tipoMovimiento, long codigoArticulo, long cantidad){
-        //TODO: debe afectar la tabla de articulos
+    void procesarMovimiento(long codigoMovimiento, String tipoMovimiento, long codigoArticulo, long cantidad) {
+
+        def articulo = Articulo.findByCodigoArticulo(codigoArticulo)
+        if (tipoMovimiento.contains("ENTRADA")) {
+            articulo.cantidadDisponible += cantidad
+            articulo.save()
+        } else {
+            articulo.cantidadDisponible -= cantidad
+            articulo.save()
+        }
         println "PROCESANDO: $codigoMovimiento $tipoMovimiento $codigoArticulo $cantidad"
         def movimiento = new MovimientoInventario(
                 codigoMovimiento: codigoMovimiento,
@@ -15,13 +23,13 @@ class OrdenCompraService {
                 cantidad: cantidad
         ).insert()
     }
-    void procesarOrdenCompra(){
+
+    void procesarOrdenCompra() {
 
         def orden = new OrdenCompra(
 
         ).insert()
     }
-
 
 
     def serviceMethod() {

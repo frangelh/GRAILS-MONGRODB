@@ -9,4 +9,10 @@ class Suplidor {
 
     static constraints = {
     }
+
+
+    @Override
+    public String toString() {
+        return descripcion
+    }
 }

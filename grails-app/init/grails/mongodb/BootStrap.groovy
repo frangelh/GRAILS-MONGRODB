@@ -12,8 +12,8 @@ class BootStrap {
         def suplidor5 = new Suplidor(codigoSuplidor: 2,descripcion: "EL ENCANTO",direccion: "AVENIDA 27 FEBRERO # 12",tiempoEntrega: 8).insert()
 
         def articulo1 = new Articulo(codigoArticulo: 1,descripcion: "COMPUTADORA DELL",UNIDAD: "UNIDAD",precio: new BigDecimal(200),cantidadDisponible: 2,suplidores: [1,2]).insert()
-        def articulo2 = new Articulo(codigoArticulo: 1,descripcion: "COMPUTADORA HP",UNIDAD: "UNIDAD",precio: new BigDecimal(150),cantidadDisponible: 10,suplidores: [2]).insert()
-        def articulo3 = new Articulo(codigoArticulo: 1,descripcion: "COMPUTADORA COMPAQ",UNIDAD: "UNIDAD",precio: new BigDecimal(100),cantidadDisponible: 3,suplidores: [2]).insert()
+        def articulo2 = new Articulo(codigoArticulo: 2,descripcion: "COMPUTADORA HP",UNIDAD: "UNIDAD",precio: new BigDecimal(150),cantidadDisponible: 10,suplidores: [2]).insert()
+        def articulo3 = new Articulo(codigoArticulo: 3,descripcion: "COMPUTADORA COMPAQ",UNIDAD: "UNIDAD",precio: new BigDecimal(100),cantidadDisponible: 3,suplidores: [2]).insert()
 
 
 
