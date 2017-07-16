@@ -7,7 +7,7 @@ class OrdenCompraService {
 
     void procesarMovimiento(long codigoMovimiento, String tipoMovimiento, long codigoArticulo, long cantidad) {
 
-        def articulo = Articulo.findByCodigoArticulo(codigoArticulo)
+        Articulo articulo = Articulo.findByCodigoArticulo(codigoArticulo)
         if (tipoMovimiento.contains("ENTRADA")) {
             articulo.cantidadDisponible += cantidad
             articulo.save()

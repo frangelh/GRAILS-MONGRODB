@@ -6,7 +6,7 @@ class OrdenCompra {
     long codigoSuplidor
     Date fechaOrden
     BigDecimal montoTotal
-    List<Articulo> articulos
+    List<Long> articulos
 
 
     static mapWith = "mongo"

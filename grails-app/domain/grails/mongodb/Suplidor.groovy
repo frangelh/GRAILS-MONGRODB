@@ -5,6 +5,8 @@ class Suplidor {
     String descripcion
     String direccion
     long tiempoEntrega // en dias
+
+
     static mapWith = "mongo"
 
     static constraints = {

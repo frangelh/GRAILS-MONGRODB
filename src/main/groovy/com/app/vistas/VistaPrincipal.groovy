@@ -8,7 +8,6 @@ import com.vaadin.ui.renderers.ClickableRenderer
 import com.vaadin.ui.themes.ValoTheme
 import grails.mongodb.ArticuloService
 import grails.mongodb.OrdenCompraService
-import grails.mongodb.Suplidor
 
 class VistaPrincipal extends VerticalLayout {
 
@@ -39,6 +38,9 @@ class VistaPrincipal extends VerticalLayout {
         tabSheet.setSizeFull()
         tabSheet.addTab(construirMovimientos(), "Movimientos de inventario")
         tabSheet.addTab(construirPedidos(), "Pedidos Automaticos")
+        tabSheet.addTab(construirArticulos(), "Inventario Articulos")
+
+
         body.addComponent(tabSheet)
         return body
     }
@@ -124,6 +126,7 @@ class VistaPrincipal extends VerticalLayout {
 
         //buscador
         HorizontalLayout hl = new HorizontalLayout()
+        hl.setSizeUndefined()
         TextField tfBuscar = new TextField("Codigo Articulo:")
         tfBuscar.setWidth("200px ")
         tfBuscar.addStyleName(ValoTheme.TEXTFIELD_INLINE_ICON);
@@ -153,7 +156,7 @@ class VistaPrincipal extends VerticalLayout {
                 articulos.remove(at)
                 grid.setItems(articulos)
                 BigDecimal monto = BigDecimal.ZERO
-                articulos.each {a-> monto = monto.add(a.precio)}
+                articulos.each { a -> monto = monto.add(a.precio) }
                 tfMonto.value = monto.toString()
             }
         }))
@@ -162,17 +165,80 @@ class VistaPrincipal extends VerticalLayout {
             @Override
             void buttonClick(Button.ClickEvent clickEvent) {
                 articulos.addAll(Grails.get(ArticuloService).buscarArticulo(tfBuscar.value.toString().toLong()))
-                grid.setItems(articulos)
+                def mayorSuplidor = articulos.get(0).suplidor
+                int mayor = 1
                 BigDecimal monto = BigDecimal.ZERO
-                articulos.each {a-> monto = monto.add(a.precio)}
+                articulos.each { a ->
+                    monto = monto.add(a.precio)
+                    int actual = articulos.suplidor.count(a)
+                    if (actual > mayor) {
+                        mayor = actual
+                        mayorSuplidor = a.suplidor
+                    }
+                }
+                grid.setItems(articulos)
                 tfMonto.value = monto.toString()
-
+                tfSuplidor.value = mayorSuplidor.descripcion
             }
         })
 
+        Button btnAceptar = new Button("Procesar Movmiento")
+        btnAceptar.addClickListener(new Button.ClickListener() {
+            @Override
+            void buttonClick(Button.ClickEvent clickEvent) {
+                try {
+                    /*   long codigo = tfCodigoMovimiento.getValue().toString().toLong()
+                       String tipo = cbTipoMovimiento.value.toString()
+                       long articulo = tfArticulo.getValue().toString().toLong()
+                       long cantidad = tfCantidad.getValue().toString().toLong()
+                       def oc = Grails.get(OrdenCompraService)
+                       oc.procesarMovimiento(codigo, tipo, articulo, cantidad)*/
+                } catch (Exception e) {
+                    e.printStackTrace()
+                }
+            }
+        })
 
+        //Boton de cancelar limpia la pantalla
+        Button btnCancelar = new Button("Cancelar")
+        btnCancelar.addClickListener(new Button.ClickListener() {
+            @Override
+            void buttonClick(Button.ClickEvent clickEvent) {
+                tfOrdenCompra.clear()
+                pdfFechaInicio.clear()
+                tfBuscar.clear()
+                grid.setItems(new ArrayList<ArticuloTabla>())
+                tfSuplidor.clear()
+                tfMonto.clear()
+            }
+        })
 
         layout.addComponents(tfOrdenCompra, pdfFechaInicio, hl, grid, tfSuplidor, tfMonto)
+        return layout
+    }
+
+    private Component construirArticulos() {
+
+        VerticalLayout layout = new VerticalLayout()
+        Button btnRefresh = new Button("Refresh")
+        List<ArticuloTabla> articulos = new ArrayList<>()
+        Grid<ArticuloTabla> grid = new Grid<>(ArticuloTabla.class)
+        grid.setSizeFull()
+        grid.removeColumn("metaClass")
+        grid.removeColumn("articulo")
+        grid.removeColumn("boton")
+
+        articulos.addAll(Grails.get(ArticuloService).buscarTodo())
+        grid.setItems(articulos)
+
+        btnRefresh.addClickListener(new Button.ClickListener() {
+            @Override
+            void buttonClick(Button.ClickEvent clickEvent) {
+                articulos.addAll(Grails.get(ArticuloService).buscarTodo())
+                grid.setItems(articulos)
+            }
+        })
+        layout.addComponents(grid,btnRefresh)
         return layout
     }
 
