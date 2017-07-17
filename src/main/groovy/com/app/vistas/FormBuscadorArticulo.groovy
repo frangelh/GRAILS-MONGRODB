@@ -158,7 +158,7 @@ public class FormBuscadorArticulo extends Window implements View {
                 listaArticulos.clear()
                 articulos = articuloService.findAll()
                 listaArticulos = articulos
-                /*articulos.each { a ->
+                /*detalle.each { a ->
                     ArticuloTabla at = new ArticuloTabla()
                     at.codigo = a.codigoArticulo
                     at.descripcion = a.descripcion

@@ -28,14 +28,14 @@ class ArticuloService {
         return listaArticulos
     }
 
-    public List<ArticuloTabla> buscarArticulo(long codigo) {
+    public List<ArticuloTabla> buscarArticulo(long codigo,long cantidad) {
         List<ArticuloTabla> listaArticulos = new ArrayList<>()
         Articulo.findAllByCodigoArticulo(codigo).each { a ->
             ArticuloTabla at = new ArticuloTabla()
             at.codigo = a.codigoArticulo
             at.descripcion = a.descripcion
             at.precio = a.precio
-            at.cantidad = a.cantidadDisponible
+            at.cantidad = cantidad
             at.articulo = a
             def suplidorSeleccionado = new Suplidor(tiempoEntrega: 10000)
             a.suplidores.each { s ->

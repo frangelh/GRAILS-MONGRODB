@@ -1,13 +1,19 @@
 package com.app.vistas
 
 import com.app.encapsulados.ArticuloTabla
+
+import com.app.encapsulados.OrdenTabla
 import com.vaadin.grails.Grails
 import com.vaadin.ui.*
 import com.vaadin.ui.renderers.ButtonRenderer
 import com.vaadin.ui.renderers.ClickableRenderer
 import com.vaadin.ui.themes.ValoTheme
 import grails.mongodb.ArticuloService
+import grails.mongodb.DetalleOrden
 import grails.mongodb.OrdenCompraService
+import grails.mongodb.Suplidor
+
+import java.time.ZoneId
 
 class VistaPrincipal extends VerticalLayout {
 
@@ -39,7 +45,7 @@ class VistaPrincipal extends VerticalLayout {
         tabSheet.addTab(construirMovimientos(), "Movimientos de inventario")
         tabSheet.addTab(construirPedidos(), "Pedidos Automaticos")
         tabSheet.addTab(construirArticulos(), "Inventario Articulos")
-
+        tabSheet.addTab(construirOrdenCompra(), "Pedidos Pendientes")
 
         body.addComponent(tabSheet)
         return body
@@ -125,16 +131,25 @@ class VistaPrincipal extends VerticalLayout {
         pdfFechaInicio.setWidth("150px")
 
         //buscador
-        HorizontalLayout hl = new HorizontalLayout()
-        hl.setSizeUndefined()
+        HorizontalLayout hlBuscador = new HorizontalLayout()
+        hlBuscador.setSizeUndefined()
+        hlBuscador.setSpacing(true)
+        hlBuscador.setMargin(false)
         TextField tfBuscar = new TextField("Codigo Articulo:")
         tfBuscar.setWidth("200px ")
         tfBuscar.addStyleName(ValoTheme.TEXTFIELD_INLINE_ICON);
-        Button btnBuscar = new Button("Agregar")
-        btnBuscar.setStyleName(ValoTheme.BUTTON_PRIMARY)
-        btnBuscar.addStyleName(ValoTheme.BUTTON_SMALL)
 
-        hl.addComponents(tfBuscar, btnBuscar)
+        TextField tfCantidad = new TextField("Cantidad:")
+        tfCantidad.setWidth("200px ")
+
+        Button btnAgregar = new Button("Agregar")
+        btnAgregar.setStyleName(ValoTheme.BUTTON_PRIMARY)
+        btnAgregar.addStyleName(ValoTheme.BUTTON_SMALL)
+        hlBuscador.addComponents(tfBuscar,tfCantidad, btnAgregar)
+        hlBuscador.setComponentAlignment(btnAgregar, Alignment.BOTTOM_LEFT)
+
+        hlBuscador.setSizeUndefined()
+
         Grid<ArticuloTabla> grid = new Grid<>(ArticuloTabla.class)
         grid.setSizeFull()
         grid.removeColumn("metaClass")
@@ -156,20 +171,21 @@ class VistaPrincipal extends VerticalLayout {
                 articulos.remove(at)
                 grid.setItems(articulos)
                 BigDecimal monto = BigDecimal.ZERO
-                articulos.each { a -> monto = monto.add(a.precio) }
+                articulos.each { a -> monto = monto.add(a.precio * new BigDecimal(a.cantidad))}
                 tfMonto.value = monto.toString()
             }
         }))
         //boton de buscar
-        btnBuscar.addClickListener(new Button.ClickListener() {
+        Suplidor mayorSuplidor = new Suplidor(codigoSuplidor: 0)
+        btnAgregar.addClickListener(new Button.ClickListener() {
             @Override
             void buttonClick(Button.ClickEvent clickEvent) {
-                articulos.addAll(Grails.get(ArticuloService).buscarArticulo(tfBuscar.value.toString().toLong()))
-                def mayorSuplidor = articulos.get(0).suplidor
+                articulos.addAll(Grails.get(ArticuloService).buscarArticulo(tfBuscar.value.toString().toLong(),tfCantidad.value.toString().toLong()))
+                mayorSuplidor = articulos.get(0).suplidor
                 int mayor = 1
                 BigDecimal monto = BigDecimal.ZERO
                 articulos.each { a ->
-                    monto = monto.add(a.precio)
+                    monto = monto.add(a.precio* new BigDecimal(a.cantidad))
                     int actual = articulos.suplidor.count(a)
                     if (actual > mayor) {
                         mayor = actual
@@ -187,12 +203,23 @@ class VistaPrincipal extends VerticalLayout {
             @Override
             void buttonClick(Button.ClickEvent clickEvent) {
                 try {
-                    /*   long codigo = tfCodigoMovimiento.getValue().toString().toLong()
-                       String tipo = cbTipoMovimiento.value.toString()
-                       long articulo = tfArticulo.getValue().toString().toLong()
-                       long cantidad = tfCantidad.getValue().toString().toLong()
-                       def oc = Grails.get(OrdenCompraService)
-                       oc.procesarMovimiento(codigo, tipo, articulo, cantidad)*/
+                    long codigo = tfOrdenCompra.value.toString().toLong()
+                    Date fecha = Date.from(pdfFechaInicio.value.atStartOfDay(ZoneId.systemDefault()).toInstant())
+                    long supl = mayorSuplidor.codigoSuplidor
+                    BigDecimal monto = tfMonto.value.toString().toBigDecimal()
+                    List<DetalleOrden> detalles = new ArrayList<>()
+                    articulos.each {a->
+                        DetalleOrden d = new DetalleOrden()
+                        d.codigoArticulo=  a.articulo.codigoArticulo
+                        d.descripcion = a.articulo.descripcion
+                        d.UNIDAD = a.articulo.UNIDAD
+                        d.precio = a.articulo.precio
+                        d.cantidad = a.cantidad
+                        detalles.add(d)
+                    }
+
+                    def oc = Grails.get(OrdenCompraService)
+                    oc.procesarOrdenCompra(codigo, supl, fecha, monto, detalles)
                 } catch (Exception e) {
                     e.printStackTrace()
                 }
@@ -212,8 +239,12 @@ class VistaPrincipal extends VerticalLayout {
                 tfMonto.clear()
             }
         })
+        HorizontalLayout hlBotones = new HorizontalLayout()
+        hlBotones.addComponents(btnCancelar, btnAceptar)
+        hlBotones.setComponentAlignment(btnCancelar, Alignment.BOTTOM_LEFT)
+        hlBotones.setComponentAlignment(btnAceptar, Alignment.BOTTOM_RIGHT)
 
-        layout.addComponents(tfOrdenCompra, pdfFechaInicio, hl, grid, tfSuplidor, tfMonto)
+        layout.addComponents(tfOrdenCompra, pdfFechaInicio, hlBuscador, grid, tfSuplidor, tfMonto,hlBotones)
         return layout
     }
 
@@ -239,7 +270,31 @@ class VistaPrincipal extends VerticalLayout {
                 grid.setItems(articulos)
             }
         })
-        layout.addComponents(grid,btnRefresh)
+        layout.addComponents(grid, btnRefresh)
+        return layout
+    }
+
+    private Component construirOrdenCompra() {
+
+        VerticalLayout layout = new VerticalLayout()
+        Button btnRefresh = new Button("Refresh")
+        List<OrdenTabla> articulos = new ArrayList<>()
+        Grid<OrdenTabla> grid = new Grid<>(OrdenTabla.class)
+        grid.setSizeFull()
+        grid.removeColumn("metaClass")
+
+        articulos = Grails.get(OrdenCompraService).buscarTodo()
+        grid.setItems(articulos)
+
+        btnRefresh.addClickListener(new Button.ClickListener() {
+            @Override
+            void buttonClick(Button.ClickEvent clickEvent) {
+                articulos.removeAll()
+                articulos = Grails.get(OrdenCompraService).buscarTodo()
+                grid.setItems(articulos)
+            }
+        })
+        layout.addComponents(grid, btnRefresh)
         return layout
     }
 
