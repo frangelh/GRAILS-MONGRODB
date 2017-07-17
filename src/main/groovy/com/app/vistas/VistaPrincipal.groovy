@@ -89,6 +89,10 @@ class VistaPrincipal extends VerticalLayout {
                     long cantidad = tfCantidad.getValue().toString().toLong()
                     def oc = Grails.get(OrdenCompraService)
                     oc.procesarMovimiento(codigo, tipo, articulo, cantidad)
+                    tfCodigoMovimiento.clear()
+                    cbTipoMovimiento.selectedItem = ENTRADA
+                    tfArticulo.clear()
+                    tfCantidad.clear()
                 } catch (Exception e) {
                     e.printStackTrace()
                 }
@@ -220,6 +224,14 @@ class VistaPrincipal extends VerticalLayout {
 
                     def oc = Grails.get(OrdenCompraService)
                     oc.procesarOrdenCompra(codigo, supl, fecha, monto, detalles)
+
+                    //limpiando
+                    tfOrdenCompra.clear()
+                    pdfFechaInicio.clear()
+                    tfBuscar.clear()
+                    grid.setItems(new ArrayList<ArticuloTabla>())
+                    tfSuplidor.clear()
+                    tfMonto.clear()
                 } catch (Exception e) {
                     e.printStackTrace()
                 }
