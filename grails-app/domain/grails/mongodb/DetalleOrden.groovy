@@ -6,6 +6,8 @@ class DetalleOrden {
     String descripcion
     String UNIDAD
 
+    long codigoSuplidor
+
     BigDecimal precio
     long cantidad
 

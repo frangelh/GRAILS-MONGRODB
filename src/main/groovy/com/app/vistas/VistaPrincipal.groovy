@@ -180,25 +180,22 @@ class VistaPrincipal extends VerticalLayout {
             }
         }))
         //boton de buscar
-        Suplidor mayorSuplidor = new Suplidor(codigoSuplidor: 0)
+        def suplidores = [:]
+        //Suplidor mayorSuplidor = new Suplidor(codigoSuplidor: 0)
         btnAgregar.addClickListener(new Button.ClickListener() {
             @Override
             void buttonClick(Button.ClickEvent clickEvent) {
                 articulos.addAll(Grails.get(ArticuloService).buscarArticulo(tfBuscar.value.toString().toLong(),tfCantidad.value.toString().toLong()))
-                mayorSuplidor = articulos.get(0).suplidor
+                //mayorSuplidor = articulos.get(0).suplidor
                 int mayor = 1
                 BigDecimal monto = BigDecimal.ZERO
                 articulos.each { a ->
                     monto = monto.add(a.precio* new BigDecimal(a.cantidad))
-                    int actual = articulos.suplidor.count(a)
-                    if (actual > mayor) {
-                        mayor = actual
-                        mayorSuplidor = a.suplidor
-                    }
+                    suplidores.put(a.codigo.toString(),a.suplidor)
                 }
                 grid.setItems(articulos)
                 tfMonto.value = monto.toString()
-                tfSuplidor.value = mayorSuplidor.descripcion
+                //tfSuplidor.value = mayorSuplidor.descripcion
             }
         })
 
@@ -209,21 +206,25 @@ class VistaPrincipal extends VerticalLayout {
                 try {
                     long codigo = tfOrdenCompra.value.toString().toLong()
                     Date fecha = Date.from(pdfFechaInicio.value.atStartOfDay(ZoneId.systemDefault()).toInstant())
-                    long supl = mayorSuplidor.codigoSuplidor
                     BigDecimal monto = tfMonto.value.toString().toBigDecimal()
-                    List<DetalleOrden> detalles = new ArrayList<>()
-                    articulos.each {a->
-                        DetalleOrden d = new DetalleOrden()
-                        d.codigoArticulo=  a.articulo.codigoArticulo
-                        d.descripcion = a.articulo.descripcion
-                        d.UNIDAD = a.articulo.UNIDAD
-                        d.precio = a.articulo.precio
-                        d.cantidad = a.cantidad
-                        detalles.add(d)
-                    }
 
                     def oc = Grails.get(OrdenCompraService)
-                    oc.procesarOrdenCompra(codigo, supl, fecha, monto, detalles)
+                    suplidores.each {s->
+                        long supl = ((Suplidor)s.value).codigoSuplidor
+                        List<DetalleOrden> detalles = new ArrayList<>()
+                        articulos.each {a->
+                            if(a.suplidor.codigoSuplidor == supl) {
+                                DetalleOrden d = new DetalleOrden()
+                                d.codigoArticulo = a.articulo.codigoArticulo
+                                d.descripcion = a.articulo.descripcion
+                                d.UNIDAD = a.articulo.UNIDAD
+                                d.precio = a.articulo.precio
+                                d.cantidad = a.cantidad
+                                detalles.add(d)
+                            }
+                        }
+                        oc.procesarOrdenCompra(codigo, supl, fecha, monto, detalles)
+                    }
 
                     //limpiando
                     tfOrdenCompra.clear()

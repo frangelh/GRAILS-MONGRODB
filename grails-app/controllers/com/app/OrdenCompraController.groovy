@@ -25,7 +25,7 @@ class OrdenCompraController {
     def listarMovimientos(){
         TramaMovil trama = new TramaMovil()
         try {
-            return ordenCompraService.buscarTodo() as JSON
+            render ordenCompraService.buscarTodo() as JSON
 
 
         }catch (Exception ex) {
