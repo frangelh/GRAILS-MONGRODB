@@ -57,6 +57,10 @@ dependencies {
     testRuntime "org.seleniumhq.selenium:selenium-htmlunit-driver:2.47.1"
     testRuntime "net.sourceforge.htmlunit:htmlunit:2.18"
 
+    //cronjob
+    compile "org.grails.plugins:quartz:2.0.12"
+
+
     compile "org.mongodb:mongodb-driver:3.4.2"
     compile 'org.grails.plugins:mongodb:6.1.3'
 }

@@ -28,7 +28,7 @@ class OrdenCompraService {
     void procesarOrdenCompra(long codigoOrdenCompra, long codigoSuplidor, Date fechaOrden, BigDecimal montoTotal, List<DetalleOrden> detalles) {
         println "PROCESANDO: $codigoOrdenCompra $codigoSuplidor $fechaOrden $montoTotal $detalles"
 
-        detalles.each {d->
+        detalles.each { d ->
             d.codigoOrdenCompra = codigoOrdenCompra
             d.insert()
         }
@@ -63,7 +63,25 @@ class OrdenCompraService {
         }
         return listaOrdenes
     }
-
+    // Aplicar ordenes al inventario
+    void aplicarOrdenes() {
+        Date fechaServidor = new Date()
+        OrdenCompra.findAll().each { a ->
+            if (a.fechaOrden < fechaServidor && !a.procesada) {
+                def detalles = DetalleOrden.findAllByCodigoOrdenCompra(a.codigoOrdenCompra)
+                detalles.each { d ->
+                    Articulo articulo = Articulo.findByCodigoArticulo(d.codigoArticulo)
+                    articulo.cantidadDisponible += d.cantidad
+                    articulo.save(flush:true)
+                }
+                OrdenCompra orden = OrdenCompra.findById(a.id)
+                println "ORDEN:" + orden.id + "Procesada"
+                orden.markDirty('procesada')
+                orden.setProcesada(true)
+                orden.save(flush:true)
+            }
+        }
+    }
 
 
     def serviceMethod() {

@@ -7,7 +7,7 @@ class OrdenCompra {
     long codigoSuplidor
     Date fechaOrden
     BigDecimal montoTotal
-    boolean procesada = false // una ves ha sido procesada se marca null
+    boolean procesada // una ves ha sido procesada se marca null
 
 
     static mapWith = "mongo"

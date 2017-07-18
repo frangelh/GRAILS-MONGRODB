@@ -22,12 +22,11 @@ class OrdenCompraController {
         }
         render trama as JSON
     }
-
-    def procesarOrden(long codigoMovimiento,String tipoMovimiento,long codigoArticulo,long cantidad){
+    def listarMovimientos(){
         TramaMovil trama = new TramaMovil()
         try {
-            ordenCompraService.procesarMovimiento(codigoMovimiento, tipoMovimiento, codigoArticulo, cantidad)
-            trama = new TramaMovil(false,"Guardado satisfactoriamente...")
+            return ordenCompraService.buscarTodo() as JSON
+
 
         }catch (Exception ex) {
             ex.printStackTrace()
@@ -35,4 +34,6 @@ class OrdenCompraController {
         }
         render trama as JSON
     }
+
+
 }
