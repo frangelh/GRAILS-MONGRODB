@@ -58,7 +58,7 @@ class OrdenCompraService {
             at.monto = a.montoTotal
             at.fechaOrden = a.fechaOrden
             at.estado = a.procesada
-            def suplidorSeleccionado = new Suplidor(tiempoEntrega: 10000)
+            def suplidorSeleccionado = Suplidor.findAll().get(0)
             Suplidor sup = Suplidor.findByCodigoSuplidor(a.codigoSuplidor)
             if (sup.tiempoEntrega < suplidorSeleccionado.tiempoEntrega)
                 suplidorSeleccionado = sup
@@ -106,18 +106,27 @@ class OrdenCompraService {
         BigDecimal total = new BigDecimal(0)
         Articulo.findAll().each { art ->
             if ((art.cantidadDisponible - art.cantidadConsumoDiario) < 0) {
-                println "PROCESANDO JOB: "+art.codigoArticulo
+                println "PROCESANDO JOB: " + art.codigoArticulo
                 DetalleOrden d = new DetalleOrden()
                 d.codigoArticulo = art.codigoArticulo
                 d.descripcion = art.descripcion
                 d.UNIDAD = art.UNIDAD
                 d.precio = art.precio
                 d.cantidad = art.cantidadConsumoDiario * 1.05 // de excedente
+                def suplidorSeleccionado = Suplidor.findAll().get(0)
+                art.suplidores.each {su->
+                    Suplidor sup = Suplidor.findByCodigoSuplidor(su)
+                    if (sup.tiempoEntrega < suplidorSeleccionado.tiempoEntrega)
+                        suplidorSeleccionado = sup
+                }
+
+                d.codigoSuplidor = suplidorSeleccionado.codigoSuplidor
                 detalles.add(d)
                 total += d.cantidad * d.precio
             }
         }
-        procesarOrdenCompra(new Random().nextInt(10000), detalles.codigoSuplidor.get(0), new Date(), total, detalles)
+        if (detalles.size() > 0)
+            procesarOrdenCompra(new Random().nextInt(10000), detalles.codigoSuplidor.get(0), new Date(), total, detalles)
 
 
     }
