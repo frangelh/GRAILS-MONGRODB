@@ -1,6 +1,7 @@
 package com.app.encapsulados
 
 import grails.mongodb.Articulo
+import grails.mongodb.OrdenCompra
 import grails.mongodb.Suplidor
 
 class OrdenTabla {
@@ -11,4 +12,5 @@ class OrdenTabla {
     String suplidor
     long tiempo
     boolean estado
+    OrdenCompra orden
 }

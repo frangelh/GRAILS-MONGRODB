@@ -1,22 +1,22 @@
 package com.app.vistas
 
 import com.app.encapsulados.ArticuloTabla
-
+import com.app.encapsulados.MovimientoTabla
 import com.app.encapsulados.OrdenTabla
 import com.vaadin.grails.Grails
+import com.vaadin.server.UserError
 import com.vaadin.ui.*
 import com.vaadin.ui.renderers.ButtonRenderer
 import com.vaadin.ui.renderers.ClickableRenderer
 import com.vaadin.ui.themes.ValoTheme
-import grails.mongodb.ArticuloService
-import grails.mongodb.DetalleOrden
-import grails.mongodb.OrdenCompraService
-import grails.mongodb.Suplidor
+import grails.mongodb.*
 
 import java.time.ZoneId
 
 class VistaPrincipal extends VerticalLayout {
 
+    List<Articulo> articulosDisponibles = new ArrayList<>()
+    List<Suplidor> suplidoresDisponibles = new ArrayList<>()
 
     public static final String ENTRADA = "ENTRADA"
     public static final String SALIDA = "SALIDA"
@@ -25,6 +25,9 @@ class VistaPrincipal extends VerticalLayout {
         setSizeFull()
         //addComponent(construirHeader())
         addComponent(construirBody())
+
+        articulosDisponibles = Grails.get(ArticuloService).buscarTodo().articulo
+        suplidoresDisponibles = Grails.get(OrdenCompraService).listarSuplidores()
 
     }
 
@@ -42,8 +45,9 @@ class VistaPrincipal extends VerticalLayout {
         body.setSizeFull()
         TabSheet tabSheet = new TabSheet()
         tabSheet.setSizeFull()
-        tabSheet.addTab(construirMovimientos(), "Movimientos de inventario")
-        tabSheet.addTab(construirPedidos(), "Pedidos Automaticos")
+        tabSheet.addTab(construirRealizarMovimiento(), "Realizar Movimientos")
+        tabSheet.addTab(construirConsultaMovimientos(), "Movimientos de inventario")
+        tabSheet.addTab(construirRealizarOrdenCompra(), "Realizar Pedido Automaticos")
         tabSheet.addTab(construirArticulos(), "Inventario Articulos")
         tabSheet.addTab(construirOrdenCompra(), "Pedidos Pendientes")
 
@@ -51,7 +55,7 @@ class VistaPrincipal extends VerticalLayout {
         return body
     }
 
-    private Component construirMovimientos() {
+    private Component construirRealizarMovimiento() {
         VerticalLayout layout = new VerticalLayout()
         layout.setSizeUndefined()
 
@@ -71,10 +75,13 @@ class VistaPrincipal extends VerticalLayout {
         tfCantidad.requiredIndicatorVisible = true
 
         // agregando campos al layout
+
+
         layout.addComponent(tfCodigoMovimiento)
         layout.addComponent(cbTipoMovimiento)
         layout.addComponent(tfArticulo)
         layout.addComponent(tfCantidad)
+
 
         Button btnAceptar = new Button("Procesar Movmiento")
         btnAceptar.addClickListener(new Button.ClickListener() {
@@ -82,17 +89,20 @@ class VistaPrincipal extends VerticalLayout {
             void buttonClick(Button.ClickEvent clickEvent) {
 
                 try {
-
-                    long codigo = tfCodigoMovimiento.getValue().toString().toLong()
-                    String tipo = cbTipoMovimiento.value.toString()
                     long articulo = tfArticulo.getValue().toString().toLong()
-                    long cantidad = tfCantidad.getValue().toString().toLong()
-                    def oc = Grails.get(OrdenCompraService)
-                    oc.procesarMovimiento(codigo, tipo, articulo, cantidad)
-                    tfCodigoMovimiento.clear()
-                    cbTipoMovimiento.selectedItem = ENTRADA
-                    tfArticulo.clear()
-                    tfCantidad.clear()
+                    if (articulosDisponibles.codigoArticulo.contains(articulo)) {
+                        long codigo = tfCodigoMovimiento.getValue().toString().toLong()
+                        String tipo = cbTipoMovimiento.value.toString()
+                        long cantidad = tfCantidad.getValue().toString().toLong()
+                        def oc = Grails.get(OrdenCompraService)
+                        oc.procesarMovimiento(codigo, tipo, articulo, cantidad)
+                        tfCodigoMovimiento.clear()
+                        cbTipoMovimiento.selectedItem = ENTRADA
+                        tfArticulo.clear()
+                        tfCantidad.clear()
+                    } else {
+                        tfArticulo.setComponentError(new UserError("Este articulo no existe"))
+                    }
                 } catch (Exception e) {
                     e.printStackTrace()
                 }
@@ -121,7 +131,31 @@ class VistaPrincipal extends VerticalLayout {
 
     }
 
-    private Component construirPedidos() {
+    private Component construirConsultaMovimientos() {
+        VerticalLayout tabla = new VerticalLayout()
+        tabla.setSizeFull()
+        Button btnRefresh = new Button("Refresh")
+        List<MovimientoTabla> movimientos = new ArrayList<>()
+        Grid<MovimientoTabla> grid = new Grid<>(MovimientoTabla.class)
+        grid.setSizeFull()
+        grid.removeColumn("metaClass")
+
+        movimientos = Grails.get(OrdenCompraService).buscarMovimientos()
+        grid.setItems(movimientos)
+
+        btnRefresh.addClickListener(new Button.ClickListener() {
+            @Override
+            void buttonClick(Button.ClickEvent clickEvent) {
+                movimientos.removeAll()
+                movimientos = Grails.get(OrdenCompraService).buscarMovimientos()
+                grid.setItems(movimientos)
+            }
+        })
+        tabla.addComponents(grid, btnRefresh)
+        return tabla
+    }
+
+    private Component construirRealizarOrdenCompra() {
 
         List<ArticuloTabla> articulos = new ArrayList<>()
         def suplidor // suplidor mas comun
@@ -149,7 +183,7 @@ class VistaPrincipal extends VerticalLayout {
         Button btnAgregar = new Button("Agregar")
         btnAgregar.setStyleName(ValoTheme.BUTTON_PRIMARY)
         btnAgregar.addStyleName(ValoTheme.BUTTON_SMALL)
-        hlBuscador.addComponents(tfBuscar,tfCantidad, btnAgregar)
+        hlBuscador.addComponents(tfBuscar, tfCantidad, btnAgregar)
         hlBuscador.setComponentAlignment(btnAgregar, Alignment.BOTTOM_LEFT)
 
         hlBuscador.setSizeUndefined()
@@ -160,7 +194,8 @@ class VistaPrincipal extends VerticalLayout {
         grid.removeColumn("articulo")
 
 
-        TextField tfSuplidor = new TextField("Suplidor:")
+        TextField tfSuplidor = new TextField("Suplidores:")
+        tfSuplidor.width = "400px"
         tfSuplidor.readOnly = true
 
         TextField tfMonto = new TextField("Monto Total:")
@@ -175,27 +210,38 @@ class VistaPrincipal extends VerticalLayout {
                 articulos.remove(at)
                 grid.setItems(articulos)
                 BigDecimal monto = BigDecimal.ZERO
-                articulos.each { a -> monto = monto.add(a.precio * new BigDecimal(a.cantidad))}
+                articulos.each { a -> monto = monto.add(a.precio * new BigDecimal(a.cantidad)) }
                 tfMonto.value = monto.toString()
             }
         }))
         //boton de buscar
         def suplidores = [:]
-        //Suplidor mayorSuplidor = new Suplidor(codigoSuplidor: 0)
         btnAgregar.addClickListener(new Button.ClickListener() {
             @Override
             void buttonClick(Button.ClickEvent clickEvent) {
-                articulos.addAll(Grails.get(ArticuloService).buscarArticulo(tfBuscar.value.toString().toLong(),tfCantidad.value.toString().toLong()))
-                //mayorSuplidor = articulos.get(0).suplidor
-                int mayor = 1
-                BigDecimal monto = BigDecimal.ZERO
-                articulos.each { a ->
-                    monto = monto.add(a.precio* new BigDecimal(a.cantidad))
-                    suplidores.put(a.codigo.toString(),a.suplidor)
+                try {
+                    boolean procesar = true
+                    long articulo = tfBuscar.value.toString().toLong()
+                    long cantidad = tfCantidad.value.toString().toLong()
+                    if (!articulosDisponibles.codigoArticulo.contains(articulo)){
+                        tfBuscar.setComponentError(new UserError("Este articulo no existe"))
+                        procesar = false
+                    }
+
+                    if(procesar) {
+                        articulos.addAll(Grails.get(ArticuloService).buscarArticulo(articulo, cantidad))
+                        BigDecimal monto = BigDecimal.ZERO
+                        articulos.each { a ->
+                            monto = monto.add(a.precio * new BigDecimal(a.cantidad))
+                            suplidores.put(a.codigo.toString(), a.suplidor)
+                        }
+                        grid.setItems(articulos)
+                        tfMonto.value = monto.toString()
+                        tfSuplidor.value = suplidores.values().toString()
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace()
                 }
-                grid.setItems(articulos)
-                tfMonto.value = monto.toString()
-                //tfSuplidor.value = mayorSuplidor.descripcion
             }
         })
 
@@ -209,11 +255,11 @@ class VistaPrincipal extends VerticalLayout {
                     BigDecimal monto = tfMonto.value.toString().toBigDecimal()
 
                     def oc = Grails.get(OrdenCompraService)
-                    suplidores.each {s->
-                        long supl = ((Suplidor)s.value).codigoSuplidor
+                    suplidores.each { s ->
+                        long supl = ((Suplidor) s.value).codigoSuplidor
                         List<DetalleOrden> detalles = new ArrayList<>()
-                        articulos.each {a->
-                            if(a.suplidor.codigoSuplidor == supl) {
+                        articulos.each { a ->
+                            if (a.suplidor.codigoSuplidor == supl) {
                                 DetalleOrden d = new DetalleOrden()
                                 d.codigoArticulo = a.articulo.codigoArticulo
                                 d.descripcion = a.articulo.descripcion
@@ -257,7 +303,7 @@ class VistaPrincipal extends VerticalLayout {
         hlBotones.setComponentAlignment(btnCancelar, Alignment.BOTTOM_LEFT)
         hlBotones.setComponentAlignment(btnAceptar, Alignment.BOTTOM_RIGHT)
 
-        layout.addComponents(tfOrdenCompra, pdfFechaInicio, hlBuscador, grid, tfSuplidor, tfMonto,hlBotones)
+        layout.addComponents(tfOrdenCompra, pdfFechaInicio, hlBuscador, grid, tfSuplidor, tfMonto, hlBotones)
         return layout
     }
 
@@ -295,15 +341,17 @@ class VistaPrincipal extends VerticalLayout {
         Grid<OrdenTabla> grid = new Grid<>(OrdenTabla.class)
         grid.setSizeFull()
         grid.removeColumn("metaClass")
+        grid.removeColumn("orden")
 
-        articulos = Grails.get(OrdenCompraService).buscarTodo()
+
+        articulos = Grails.get(OrdenCompraService).buscarOrdenes()
         grid.setItems(articulos)
 
         btnRefresh.addClickListener(new Button.ClickListener() {
             @Override
             void buttonClick(Button.ClickEvent clickEvent) {
                 articulos.removeAll()
-                articulos = Grails.get(OrdenCompraService).buscarTodo()
+                articulos = Grails.get(OrdenCompraService).buscarOrdenes()
                 grid.setItems(articulos)
             }
         })
