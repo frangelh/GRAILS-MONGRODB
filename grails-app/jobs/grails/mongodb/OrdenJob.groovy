@@ -11,6 +11,8 @@ class OrdenJob {
         // execute job
         println "Corriendo JOB:"
         ordenCompraService.aplicarOrdenes()
+        ordenCompraService.calcularConsumo()
+        ordenCompraService.pedidoEmergencia()
 
     }
 }

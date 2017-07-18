@@ -1,9 +1,7 @@
 package grails.mongodb
 
-import com.app.encapsulados.ArticuloTabla
 import com.app.encapsulados.MovimientoTabla
 import com.app.encapsulados.OrdenTabla
-import com.vaadin.grails.Grails
 import grails.transaction.Transactional
 
 @Transactional
@@ -11,14 +9,14 @@ class OrdenCompraService {
 
     void procesarMovimiento(long codigoMovimiento, String tipoMovimiento, long codigoArticulo, long cantidad) {
         Articulo articulo = Articulo.findByCodigoArticulo(codigoArticulo)
-        if (cantidad > articulo.cantidadDisponible) {
-            cantidad = articulo.cantidadDisponible
-            //pedidoEmergencia(articulo)
-        }
+
         if (tipoMovimiento.contains("ENTRADA")) {
             articulo.cantidadDisponible += cantidad
             articulo.save()
         } else {
+            if (cantidad > articulo.cantidadDisponible) {
+                cantidad = articulo.cantidadDisponible
+            }
             articulo.cantidadDisponible -= cantidad
             articulo.save()
         }
@@ -27,7 +25,8 @@ class OrdenCompraService {
                 codigoMovimiento: codigoMovimiento,
                 tipoMovimiento: tipoMovimiento,
                 codigoArticulo: codigoArticulo,
-                cantidad: cantidad
+                cantidad: cantidad,
+                fechaMovimiento: new Date()
         ).insert()
     }
 
@@ -101,21 +100,45 @@ class OrdenCompraService {
         }
     }
 
-    void pedidoEmergencia(Articulo articulo) {
-        //Ejecutar una orden de compra
-        ArticuloTabla art = Grails.get(ArticuloService).buscarArticulo(articulo.codigoArticulo, 50).get(0)
+    void pedidoEmergencia() {
+
         List<DetalleOrden> detalles = new ArrayList<>()
-        DetalleOrden d = new DetalleOrden()
-        d.codigoArticulo = art.articulo.codigoArticulo
-        d.descripcion = art.articulo.descripcion
-        d.UNIDAD = art.articulo.UNIDAD
-        d.precio = art.articulo.precio
-        d.cantidad = art.cantidad
-        detalles.add(d)
-        procesarOrdenCompra(new Random().nextInt(10000), art.suplidor.codigoSuplidor, new Date(), art.cantidad * art.precio, detalles)
+        BigDecimal total = new BigDecimal(0)
+        Articulo.findAll().each { art ->
+            if ((art.cantidadDisponible - art.cantidadConsumoDiario) < 0) {
+                println "PROCESANDO JOB: "+art.codigoArticulo
+                DetalleOrden d = new DetalleOrden()
+                d.codigoArticulo = art.codigoArticulo
+                d.descripcion = art.descripcion
+                d.UNIDAD = art.UNIDAD
+                d.precio = art.precio
+                d.cantidad = art.cantidadConsumoDiario * 1.05 // de excedente
+                detalles.add(d)
+                total += d.cantidad * d.precio
+            }
+        }
+        procesarOrdenCompra(new Random().nextInt(10000), detalles.codigoSuplidor.get(0), new Date(), total, detalles)
+
+
     }
+
     public List<Suplidor> listarSuplidores() {
         return Suplidor.findAll()
+    }
+
+    void calcularConsumo() {
+        def articulos = Articulo.findAll()
+        long max = 0;
+        articulos.each { a ->
+            def movimientos = MovimientoInventario.findAllByCodigoArticulo(a.codigoArticulo)
+            movimientos.each { m ->
+                if (m.cantidad > max)
+                    max = m.cantidad
+            }
+            Articulo articulo = Articulo.findById(a.id)
+            articulo.cantidadConsumoDiario = max
+            articulo.save()
+        }
     }
 
 

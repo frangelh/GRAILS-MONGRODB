@@ -5,7 +5,7 @@ class MovimientoInventario {
     String tipoMovimiento
     long codigoArticulo
     long cantidad
-
+    Date fechaMovimiento
 
 
     static mapWith = "mongo"
